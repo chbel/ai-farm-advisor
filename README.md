@@ -12,12 +12,12 @@ Microservices architecture: FastAPI services behind an API Gateway, PostgreSQL 1
 | `services/farm-service` | 8002 | `farm_db` | Farms, fields, crops, growth stages, farm journal |
 | `services/weather-service` | 8003 | – (in-memory cache) | Open-Meteo forecasts, history, ET0, GDD, crop weather alerts |
 | `services/irrigation-service` | 8004 | – (stateless) | FAO-56 crop water requirements and irrigation recommendations |
-| `services/disease-detection-service` | – | `disease_db` | Planned |
+| `services/disease-detection-service` | 8005 | – (model files) | Tomato leaf disease classifier (ONNX), calibrated confidence |
 | `services/ai-advisor-service` | – | `advisor_db` (pgvector) | Planned |
 
 Only the gateway is published to the host. Public API paths are `/api/v1/<prefix>/...`:
 `auth` and `users` → identity, `farms` → farm, `weather` → weather,
-`irrigation` → irrigation.
+`irrigation` → irrigation, `disease` → disease detection.
 
 ## First-time setup
 
@@ -55,7 +55,7 @@ Copy-Item .env.example .env
 .venv\Scripts\python -m uvicorn app.main:app --port 8001 --reload
 ```
 
-Ports: gateway 8000, identity 8001, farm 8002, weather 8003, irrigation 8004.
+Ports: gateway 8000, identity 8001, farm 8002, weather 8003, irrigation 8004, disease 8005.
 
 ## Authentication
 
@@ -155,6 +155,36 @@ before the period; olive Kc overestimates water use in sparse orchards; soil tex
 not in FAO-56 Table 19 (e.g. clay loam) get no interval; the farm flow does not yet
 apply the climate adjustment (needs daily RHmin and 2 m wind from the Weather Service).
 
+## Disease Detection Service
+
+`POST /api/v1/disease/analyze` (multipart: `image` = JPEG/PNG/WebP up to 8 MB, at least
+128 px per side; `crop_type` = `tomato`) returns the top 3 conditions with calibrated
+probabilities, an outcome (`likely` or `uncertain`), the model's accuracy on field
+photos, and a disclaimer. It never presents a result as a diagnosis and gives no
+treatment advice (that is the AI Advisor's job, grounded in sources). Images are
+processed in memory and not stored. `GET /api/v1/disease/models` lists installed
+models, classes, metrics and training-data licenses.
+
+**Model**: torchvision MobileNetV3-Large (BSD-3-Clause, ImageNet-pretrained),
+fine-tuned on 10 tomato classes and served with ONNX Runtime (MIT), so the service needs
+no PyTorch (~70 MB RAM). Confidence is calibrated with temperature scaling; predictions
+below 60 % or with less than a 15-point margin are reported as `uncertain`.
+
+**Training** (Google Colab, nothing to install locally): open
+`ml/disease-detection/train_tomato_colab.ipynb` in Colab, select a T4 GPU runtime,
+Run all, then extract the downloaded `tomato_disease_model.zip` into
+`services/disease-detection-service/models/tomato/` and restart the service. The
+notebook is generated from `train_tomato.py` (`python build_notebook.py`).
+
+**Data** (licenses checked at source): PlantVillage (Mohanty et al., 2016, CC BY-SA
+3.0, lab photos) and PlantDoc (Singh et al., 2020, CC BY 4.0, field photos). Accuracy is
+reported separately for field photos, the realistic figure for farmers.
+
+**Olive is not supported yet**: no openly licensed olive leaf dataset exists (the
+main published one, from Turkey, has no license). The API answers olive requests
+with an explanation. Adding a crop needs only a new `models/<crop>/` folder and
+catalog entries.
+
 ## Tests
 
 Identity and Farm API tests use separate `identity_db_test` / `farm_db_test` databases
@@ -167,6 +197,7 @@ cd services\identity-service;    .venv\Scripts\python -m pytest
 cd services\farm-service;        .venv\Scripts\python -m pytest
 cd services\weather-service;     .venv\Scripts\python -m pytest
 cd services\irrigation-service;  .venv\Scripts\python -m pytest
+docker build --target test services/disease-detection-service   # runs its tests in Docker
 ```
 
 ## Database migrations (per service)
