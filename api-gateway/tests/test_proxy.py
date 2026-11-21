@@ -1,31 +1,12 @@
 """Gateway routing tests. Upstreams are simulated with httpx.MockTransport."""
 
 import json
-from collections.abc import Callable, Iterator
 
 import httpx
-import pytest
-from fastapi.testclient import TestClient
 
 from app.core.config import settings
-from app.core.proxy import get_http_client
-from app.main import app
 
 IDENTITY = str(settings.IDENTITY_SERVICE_URL).rstrip("/")
-Handler = Callable[[httpx.Request], httpx.Response]
-
-
-@pytest.fixture
-def gateway() -> Iterator[Callable[[Handler], TestClient]]:
-    """Return a factory that builds a TestClient whose upstream calls hit `handler`."""
-
-    def build(handler: Handler) -> TestClient:
-        mock_client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
-        app.dependency_overrides[get_http_client] = lambda: mock_client
-        return TestClient(app)
-
-    yield build
-    app.dependency_overrides.clear()
 
 
 def test_forwards_method_path_query_body_and_headers(gateway):
@@ -59,7 +40,7 @@ def test_forwards_method_path_query_body_and_headers(gateway):
 
 
 def test_generates_request_id_when_missing(gateway):
-    response = gateway(lambda r: httpx.Response(200, json={})).get("/api/v1/auth/me")
+    response = gateway(lambda r: httpx.Response(200, json={})).post("/api/v1/auth/login", json={})
 
     assert response.status_code == 200
     assert len(response.headers["x-request-id"]) == 36  # UUID4

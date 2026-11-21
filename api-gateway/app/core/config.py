@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import AnyHttpUrl
+from pydantic import AnyHttpUrl, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,6 +26,12 @@ class Settings(BaseSettings):
 
     # Upper bound for a single upstream call, in seconds.
     UPSTREAM_TIMEOUT_SECONDS: float = 15.0
+
+    # JWT verification. Must match the Identity Service settings.
+    JWT_SECRET_KEY: SecretStr
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ISSUER: str = "ai-farm-advisor-identity"
+    JWT_AUDIENCE: str = "ai-farm-advisor"
 
     # Tell Pydantic how to load and validate configuration.
     model_config = SettingsConfigDict(

@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.proxy import get_http_client
-from app.core.services import SERVICES, UpstreamService
+from app.core.services import unique_services
 
 
 # APIRouter allows us to organize endpoints separately from main.py.
@@ -27,9 +27,9 @@ async def health_check():
     }
 
 
-async def _probe(client: httpx.AsyncClient, service: UpstreamService) -> str:
+async def _probe(client: httpx.AsyncClient, base_url: str) -> str:
     try:
-        response = await client.get(f"{service.base_url}/health", timeout=3.0)
+        response = await client.get(f"{base_url}/health", timeout=3.0)
     except httpx.HTTPError:
         return "unavailable"
     return "healthy" if response.status_code == 200 else "unhealthy"
@@ -44,8 +44,9 @@ async def readiness_check(client: httpx.AsyncClient = Depends(get_http_client)):
     exactly which dependency is failing.
     """
 
-    results = await asyncio.gather(*(_probe(client, s) for s in SERVICES))
-    services = {s.name: r for s, r in zip(SERVICES, results)}
+    targets = unique_services()
+    results = await asyncio.gather(*(_probe(client, url) for url in targets.values()))
+    services = dict(zip(targets, results))
     ready = all(r == "healthy" for r in results)
 
     return JSONResponse(

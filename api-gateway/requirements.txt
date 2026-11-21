@@ -4,3 +4,5 @@ uvicorn[standard]==0.54.0
 pydantic-settings==2.16.2
 # Async HTTP client used to forward requests to the microservices.
 httpx==0.28.1
+# Verifies access tokens before requests reach the services.
+PyJWT==2.15.1
