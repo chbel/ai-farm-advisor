@@ -5,6 +5,7 @@ import os
 # Deterministic test values; environment variables take precedence over .env.
 os.environ["JWT_SECRET_KEY"] = "gateway-test-secret-key-at-least-32-bytes"
 os.environ["IDENTITY_SERVICE_URL"] = "http://identity.test:8001"
+os.environ["FARM_SERVICE_URL"] = "http://farm.test:8002"
 
 from collections.abc import Callable, Iterator  # noqa: E402
 

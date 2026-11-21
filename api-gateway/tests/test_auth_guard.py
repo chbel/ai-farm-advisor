@@ -139,3 +139,17 @@ def test_query_parameter_cannot_spoof_the_forwarded_path(gateway):
 
     assert response.status_code == 401  # bare /auth is not a public route
     assert upstream.requests == []
+
+
+def test_farm_routes_are_protected_and_forwarded(gateway):
+    upstream = Recorder()
+    client = gateway(upstream)
+
+    assert client.get("/api/v1/farms").status_code == 401
+    assert upstream.requests == []
+
+    response = client.get(
+        "/api/v1/farms/3/fields?x=1", headers={"Authorization": f"Bearer {make_token()}"}
+    )
+    assert response.status_code == 200
+    assert str(upstream.requests[0].url) == "http://farm.test:8002/farms/3/fields?x=1"
