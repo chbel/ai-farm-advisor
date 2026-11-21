@@ -182,3 +182,20 @@ def test_irrigation_routes_are_protected_and_forwarded(gateway):
     )
     assert response.status_code == 200
     assert str(upstream.requests[0].url) == "http://irrigation.test:8004/irrigation/farms/5/fields/3?days=7"
+
+
+def test_disease_upload_is_protected_and_forwarded_intact(gateway):
+    upstream = Recorder()
+    client = gateway(upstream)
+    files = {"image": ("leaf.jpg", b"fake jpeg bytes", "image/jpeg")}
+
+    assert client.post("/api/v1/disease/analyze", files=files).status_code == 401
+    assert upstream.requests == []
+
+    response = client.post("/api/v1/disease/analyze", files=files, data={"crop_type": "tomato"},
+                           headers={"Authorization": f"Bearer {make_token()}"})
+    assert response.status_code == 200
+    forwarded = upstream.requests[0]
+    assert str(forwarded.url) == "http://disease.test:8005/disease/analyze"
+    assert forwarded.headers["content-type"].startswith("multipart/form-data; boundary=")
+    assert b"fake jpeg bytes" in forwarded.content and b"tomato" in forwarded.content

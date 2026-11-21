@@ -1,0 +1,14 @@
+# Runtime dependencies (installed in the Docker image).
+fastapi==0.162.2
+uvicorn[standard]==0.54.0
+pydantic==2.14.3
+pydantic-settings==2.16.2
+# Verifies access tokens issued by the Identity Service.
+PyJWT==2.15.1
+# Multipart form parsing for image uploads (required by FastAPI File/Form).
+python-multipart==0.0.34
+# Image decoding/validation and array preprocessing.
+pillow==13.0.0
+numpy==2.4.6
+# CPU inference of the exported model (MIT license; much lighter than PyTorch).
+onnxruntime==1.32.0

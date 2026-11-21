@@ -31,3 +31,8 @@ Thumbs.db
 
 # Windows folder metadata
 desktop.ini
+
+# Trained ML models (distributed separately, see models/README.md)
+services/disease-detection-service/models/*
+!services/disease-detection-service/models/README.md
+*.onnx
