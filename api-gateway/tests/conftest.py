@@ -9,6 +9,7 @@ os.environ["FARM_SERVICE_URL"] = "http://farm.test:8002"
 os.environ["WEATHER_SERVICE_URL"] = "http://weather.test:8003"
 os.environ["IRRIGATION_SERVICE_URL"] = "http://irrigation.test:8004"
 os.environ["DISEASE_SERVICE_URL"] = "http://disease.test:8005"
+os.environ["ADVISOR_SERVICE_URL"] = "http://advisor.test:8006"
 
 from collections.abc import Callable, Iterator  # noqa: E402
 

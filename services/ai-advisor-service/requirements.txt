@@ -1,0 +1,25 @@
+# Runtime dependencies (installed in the Docker image). All open source.
+fastapi==0.162.2
+uvicorn[standard]==0.54.0
+pydantic==2.14.3
+pydantic-settings==2.16.2
+PyJWT==2.15.1
+httpx==0.28.1
+# Database + vector search (advisor_db with pgvector).
+SQLAlchemy[asyncio]==2.1.8
+psycopg[binary]==3.3.8
+alembic==1.20.1
+pgvector==0.5.1
+# Agent orchestration (MIT).
+langgraph==1.2.24
+# Document chunking (MIT).
+llama-index-core==0.14.26
+# OpenAI-compatible client for Groq / Cerebras open-weights models (Apache-2.0).
+openai==3.57.0
+# Local multilingual embeddings: e5-small ONNX on CPU (no PyTorch).
+tokenizers==0.23.3
+onnxruntime==1.32.0
+numpy==2.4.6
+# Document parsing.
+pypdf==7.1.1
+PyYAML==6.0.4

@@ -20,6 +20,8 @@ class UpstreamService:
     public_prefix: str
     upstream_prefix: str
     public_routes: frozenset[tuple[str, str]] = field(default_factory=frozenset)
+    # Overrides UPSTREAM_TIMEOUT_SECONDS for slow services (e.g. LLM answers).
+    timeout_seconds: float | None = None
 
     def is_public(self, method: str, path: str) -> bool:
         return (method.upper(), path.strip("/")) in self.public_routes
@@ -30,6 +32,7 @@ _FARM_URL = str(settings.FARM_SERVICE_URL).rstrip("/")
 _WEATHER_URL = str(settings.WEATHER_SERVICE_URL).rstrip("/")
 _IRRIGATION_URL = str(settings.IRRIGATION_SERVICE_URL).rstrip("/")
 _DISEASE_URL = str(settings.DISEASE_SERVICE_URL).rstrip("/")
+_ADVISOR_URL = str(settings.ADVISOR_SERVICE_URL).rstrip("/")
 
 SERVICES: tuple[UpstreamService, ...] = (
     UpstreamService(
@@ -68,6 +71,13 @@ SERVICES: tuple[UpstreamService, ...] = (
         base_url=_DISEASE_URL,
         public_prefix="disease",
         upstream_prefix="disease",
+    ),
+    UpstreamService(
+        name="ai-advisor-service",
+        base_url=_ADVISOR_URL,
+        public_prefix="advisor",
+        upstream_prefix="advisor",
+        timeout_seconds=settings.ADVISOR_TIMEOUT_SECONDS,
     ),
 )
 

@@ -199,3 +199,22 @@ def test_disease_upload_is_protected_and_forwarded_intact(gateway):
     assert str(forwarded.url) == "http://disease.test:8005/disease/analyze"
     assert forwarded.headers["content-type"].startswith("multipart/form-data; boundary=")
     assert b"fake jpeg bytes" in forwarded.content and b"tomato" in forwarded.content
+
+
+def test_advisor_routes_are_protected_and_use_longer_timeout(gateway):
+    seen = {}
+
+    def upstream(request):
+        seen["url"] = str(request.url)
+        seen["timeout"] = request.extensions["timeout"]
+        return httpx.Response(200, json={"answer": "ok"})
+
+    client = gateway(upstream)
+    assert client.post("/api/v1/advisor/ask", json={"question": "hi"}).status_code == 401
+    assert seen == {}
+
+    response = client.post("/api/v1/advisor/ask", json={"question": "hi"},
+                           headers={"Authorization": f"Bearer {make_token()}"})
+    assert response.status_code == 200
+    assert seen["url"] == "http://advisor.test:8006/advisor/ask"
+    assert seen["timeout"]["read"] == 90.0

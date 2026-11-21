@@ -1,0 +1,129 @@
+# Curated knowledge base for the AI Advisor.
+#
+# Rules for adding a source:
+# - Only real documents from reliable organizations or peer-reviewed journals.
+# - Record the license exactly as stated by the publisher, and how it was checked.
+# - commercial_use: true only if the license allows commercial use (e.g. CC BY).
+#   Sources with commercial_use: false may be used in development; production sets
+#   KNOWLEDGE_COMMERCIAL_ONLY=true until a license is obtained from the publisher.
+# - crops: olive, tomato, or general (applies to any crop).
+#
+# Fetch types:
+#   pdf        - download the PDF from `url`; chunks are cited by page.
+#   europepmc  - fetch full text (JATS XML) from Europe PMC by `pmcid`; cited by section.
+#                Authors, year and license are taken from Europe PMC metadata at
+#                ingestion, and ingestion fails if the license is no longer CC BY.
+
+sources:
+  - id: fao-56-crop-evapotranspiration-2025
+    title: "Crop evapotranspiration: Guidelines for computing crop water requirements (FAO Irrigation and Drainage Paper 56, second edition)"
+    organization: FAO
+    year: 2025
+    language: en
+    crops: [general, olive, tomato]
+    topics: [irrigation, evapotranspiration, crop_coefficients, water_balance]
+    license: CC BY 4.0
+    commercial_use: true
+    license_checked: "FAO Knowledge Repository metadata dc.rights.license (handle 20.500.14283/CD6621EN), 2026-11-21"
+    fetch: pdf
+    url: "https://openknowledge.fao.org/server/api/core/bitstreams/adb9d711-428b-42da-a47f-db6f8b804848/content"
+    landing_page: "https://openknowledge.fao.org/handle/20.500.14283/CD6621EN"
+
+  - id: olive-leaf-spot-review
+    title: "Olive leaf spot caused by Venturia oleaginea: An updated review"
+    organization: Frontiers in Plant Science
+    year: 2022
+    language: en
+    crops: [olive]
+    topics: [disease, peacock_spot, fungicides, integrated_management]
+    license: CC BY 4.0
+    commercial_use: true
+    license_checked: "Europe PMC license field 'cc by' (DOI 10.3389/fpls.2022.1061136), 2026-11-21"
+    fetch: europepmc
+    pmcid: PMC9868462
+    url: "https://doi.org/10.3389/fpls.2022.1061136"
+
+  - id: olive-verticillium-wilt-review-2020
+    title: "Verticillium Wilt of Olive and its Control: What Did We Learn during the Last Decade?"
+    organization: Plants (MDPI)
+    authors: "Montes-Osuna N., Mercado-Blanco J."
+    year: 2020
+    language: en
+    crops: [olive]
+    topics: [disease, verticillium_wilt, soilborne, integrated_management]
+    license: CC BY 4.0
+    commercial_use: true
+    license_checked: "Europe PMC license field 'cc by' (DOI 10.3390/plants9060735), 2026-11-21"
+    fetch: europepmc
+    pmcid: PMC7356185
+    url: "https://doi.org/10.3390/plants9060735"
+
+  - id: olive-fly-ecology-review-2025
+    title: "Utilizing Olive Fly Ecology Towards Sustainable Pest Management"
+    organization: Biology (MDPI)
+    year: 2025
+    language: en
+    crops: [olive]
+    topics: [pest, olive_fruit_fly, integrated_pest_management]
+    license: CC BY 4.0
+    commercial_use: true
+    license_checked: "Europe PMC license field 'cc by' (DOI 10.3390/biology14020125), 2026-11-21"
+    fetch: europepmc
+    pmcid: PMC11851947
+    url: "https://doi.org/10.3390/biology14020125"
+
+  - id: tomato-yellow-leaf-curl-review-2021
+    title: "The Global Dimension of Tomato Yellow Leaf Curl Disease: Current Status and Breeding Perspectives"
+    organization: Microorganisms (MDPI)
+    year: 2021
+    language: en
+    crops: [tomato]
+    topics: [disease, virus, tylcv, whitefly, resistance]
+    license: CC BY 4.0
+    commercial_use: true
+    license_checked: "Europe PMC license field 'cc by' (PMC8066563), 2026-11-21"
+    fetch: europepmc
+    pmcid: PMC8066563
+    url: "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8066563/"
+
+  - id: fao-olive-water-productivity-tunisia-2024
+    title: "Expérimentations permettant de mesurer, d'analyser et de suivre la productivité de l'eau des oliviers en Tunisie"
+    organization: FAO
+    year: 2024
+    language: fr
+    crops: [olive]
+    topics: [irrigation, water_productivity, tunisia]
+    license: CC BY-NC-SA 3.0 IGO
+    commercial_use: false
+    license_checked: "FAO Knowledge Repository metadata dc.rights.license (handle 20.500.14283/cc9376fr), 2026-11-21"
+    fetch: pdf
+    url: "https://openknowledge.fao.org/server/api/core/bitstreams/4e6ec4c1-ece9-444d-bdeb-a6864c64eb13/content"
+    landing_page: "https://openknowledge.fao.org/handle/20.500.14283/cc9376fr"
+
+  - id: fao-gap-greenhouse-vegetables-mediterranean-2013
+    title: "Good Agricultural Practices for greenhouse vegetable crops: Principles for Mediterranean climate areas (FAO Plant Production and Protection Paper 217)"
+    organization: FAO
+    year: 2013
+    language: en
+    crops: [tomato]
+    topics: [greenhouse, irrigation, fertilization, integrated_pest_management, good_practices]
+    license: "Copyright FAO (no Creative Commons license; permission required for commercial use)"
+    commercial_use: false
+    license_checked: "FAO Knowledge Repository metadata: dc.rights.copyright FAO, no dc.rights.license (handle i3284e), 2026-11-21"
+    fetch: pdf
+    url: "https://openknowledge.fao.org/server/api/core/bitstreams/3b27458c-b392-4a7b-87bd-d2c2f6577a68/content"
+    landing_page: "https://openknowledge.fao.org/items/e12efcc8-19b8-43ee-8f85-978c41984d12"
+
+  - id: fao-66-crop-yield-response-to-water-2012
+    title: "Crop yield response to water (FAO Irrigation and Drainage Paper 66)"
+    organization: FAO
+    year: 2012
+    language: en
+    crops: [general, olive, tomato]
+    topics: [irrigation, yield_response, deficit_irrigation]
+    license: "Copyright FAO (no Creative Commons license; permission required for commercial use)"
+    commercial_use: false
+    license_checked: "FAO Knowledge Repository metadata: dc.rights.copyright FAO, no dc.rights.license (handle i2800e), 2026-11-21"
+    fetch: pdf
+    url: "https://openknowledge.fao.org/server/api/core/bitstreams/fb1683eb-df22-438f-b997-a34d44b86ba7/content"
+    landing_page: "https://openknowledge.fao.org/items/acb0049f-3ea4-4e7d-b149-587bbea84a96"

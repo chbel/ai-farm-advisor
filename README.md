@@ -13,11 +13,11 @@ Microservices architecture: FastAPI services behind an API Gateway, PostgreSQL 1
 | `services/weather-service` | 8003 | – (in-memory cache) | Open-Meteo forecasts, history, ET0, GDD, crop weather alerts |
 | `services/irrigation-service` | 8004 | – (stateless) | FAO-56 crop water requirements and irrigation recommendations |
 | `services/disease-detection-service` | 8005 | – (model files) | Tomato leaf disease classifier (ONNX), calibrated confidence |
-| `services/ai-advisor-service` | – | `advisor_db` (pgvector) | Planned |
+| `services/ai-advisor-service` | 8006 | `advisor_db` (pgvector) | LangGraph advisor: farm, weather, irrigation, disease + cited knowledge base |
 
 Only the gateway is published to the host. Public API paths are `/api/v1/<prefix>/...`:
 `auth` and `users` → identity, `farms` → farm, `weather` → weather,
-`irrigation` → irrigation, `disease` → disease detection.
+`irrigation` → irrigation, `disease` → disease detection, `advisor` → AI advisor.
 
 ## First-time setup
 
@@ -55,7 +55,7 @@ Copy-Item .env.example .env
 .venv\Scripts\python -m uvicorn app.main:app --port 8001 --reload
 ```
 
-Ports: gateway 8000, identity 8001, farm 8002, weather 8003, irrigation 8004, disease 8005.
+Ports: gateway 8000, identity 8001, farm 8002, weather 8003, irrigation 8004, disease 8005, advisor 8006.
 
 ## Authentication
 
@@ -185,6 +185,38 @@ main published one, from Turkey, has no license). The API answers olive requests
 with an explanation. Adding a crop needs only a new `models/<crop>/` folder and
 catalog entries.
 
+## AI Advisor Service
+
+`POST /api/v1/advisor/ask` with `{"question", "language": "fr|en|aeb", "crop"?, "farm_id"?,
+"field_id"?, "disease_analysis"?, "history"?}` returns a grounded answer, its confidence,
+the citations it relies on (title, organization, year, license, page or section, excerpt),
+the platform data used, and its limitations. `POST /api/v1/advisor/search` searches the
+knowledge base directly; `GET /api/v1/advisor/sources` lists sources and licenses.
+
+**Workflow (LangGraph)**: a planner picks specialists (LLM router, with a French/English/
+Arabic/Derja keyword fallback); farm, weather, irrigation, disease and knowledge nodes run
+in parallel, calling the other services with the user's own token (so access rules
+always apply); a composer writes the answer from that context only. Citation tags not
+backed by the context are removed, and confidence is capped by the evidence (no cited
+source: at most medium; uncertain photo: low).
+
+**Models (all open)**: answers by **Qwen3** (Apache-2.0) through the free tiers of
+**Groq**, with **Cerebras** as automatic fallback (OpenAI-compatible APIs; set
+`GROQ_API_KEY` / `CEREBRAS_API_KEY` in the root `.env`). Without keys the advisor still
+returns the cited evidence and farm data. Search uses **multilingual-e5-small** (MIT) on
+CPU with ONNX Runtime; chunking uses LlamaIndex; vectors live in pgvector (HNSW index).
+
+**Knowledge base**: curated in `services/ai-advisor-service/app/knowledge/sources.yaml`.
+Every source records its license and how it was verified. Load or refresh it with:
+
+```powershell
+docker compose exec ai-advisor-service python -m app.knowledge.ingest
+```
+
+Sources marked `commercial_use: false` (FAO works under CC BY-NC-SA or plain FAO
+copyright) are fine for development; set `KNOWLEDGE_COMMERCIAL_ONLY=true` in production
+until FAO grants a license (FAO licence request form / copyright@fao.org).
+
 ## Tests
 
 Identity and Farm API tests use separate `identity_db_test` / `farm_db_test` databases
@@ -198,6 +230,9 @@ cd services\farm-service;        .venv\Scripts\python -m pytest
 cd services\weather-service;     .venv\Scripts\python -m pytest
 cd services\irrigation-service;  .venv\Scripts\python -m pytest
 docker build --target test services/disease-detection-service   # runs its tests in Docker
+docker build --target test -t ai-farm-advisor-test services/ai-advisor-service
+docker run --rm --network ai-farm-advisor_default --env-file .env -e POSTGRES_HOST=postgres `
+  -e POSTGRES_PORT=5432 ai-farm-advisor-test python -m pytest -q   # + pgvector tests
 ```
 
 ## Database migrations (per service)

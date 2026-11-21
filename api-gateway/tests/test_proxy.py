@@ -91,6 +91,7 @@ def test_readiness_reports_each_service(gateway):
             "weather-service": "healthy",
             "irrigation-service": "healthy",
             "disease-detection-service": "healthy",
+            "ai-advisor-service": "healthy",
         },
     }
 
@@ -105,4 +106,5 @@ def test_readiness_reports_each_service(gateway):
         "weather-service": "unavailable",
         "irrigation-service": "unavailable",
         "disease-detection-service": "unavailable",
+        "ai-advisor-service": "unavailable",
     }

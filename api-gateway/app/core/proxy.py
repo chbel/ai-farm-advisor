@@ -61,6 +61,7 @@ async def forward(
             method=request.method,
             url=url,
             params=request.query_params,
+            timeout=service.timeout_seconds or client.timeout,
             headers=headers,
             content=await request.body(),
         )
