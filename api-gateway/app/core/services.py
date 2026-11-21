@@ -29,6 +29,7 @@ _IDENTITY_URL = str(settings.IDENTITY_SERVICE_URL).rstrip("/")
 _FARM_URL = str(settings.FARM_SERVICE_URL).rstrip("/")
 _WEATHER_URL = str(settings.WEATHER_SERVICE_URL).rstrip("/")
 _IRRIGATION_URL = str(settings.IRRIGATION_SERVICE_URL).rstrip("/")
+_DISEASE_URL = str(settings.DISEASE_SERVICE_URL).rstrip("/")
 
 SERVICES: tuple[UpstreamService, ...] = (
     UpstreamService(
@@ -61,6 +62,12 @@ SERVICES: tuple[UpstreamService, ...] = (
         base_url=_IRRIGATION_URL,
         public_prefix="irrigation",
         upstream_prefix="irrigation",
+    ),
+    UpstreamService(
+        name="disease-detection-service",
+        base_url=_DISEASE_URL,
+        public_prefix="disease",
+        upstream_prefix="disease",
     ),
 )
 
