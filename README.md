@@ -11,12 +11,13 @@ Microservices architecture: FastAPI services behind an API Gateway, PostgreSQL 1
 | `services/identity-service` | 8001 | `identity_db` | Register, login, profiles, roles, admin |
 | `services/farm-service` | 8002 | `farm_db` | Farms, fields, crops, growth stages, farm journal |
 | `services/weather-service` | 8003 | – (in-memory cache) | Open-Meteo forecasts, history, ET0, GDD, crop weather alerts |
-| `services/irrigation-service` | – | `irrigation_db` | Planned |
+| `services/irrigation-service` | 8004 | – (stateless) | FAO-56 crop water requirements and irrigation recommendations |
 | `services/disease-detection-service` | – | `disease_db` | Planned |
 | `services/ai-advisor-service` | – | `advisor_db` (pgvector) | Planned |
 
 Only the gateway is published to the host. Public API paths are `/api/v1/<prefix>/...`:
-`auth` and `users` → identity, `farms` → farm, `weather` → weather.
+`auth` and `users` → identity, `farms` → farm, `weather` → weather,
+`irrigation` → irrigation.
 
 ## First-time setup
 
@@ -54,7 +55,7 @@ Copy-Item .env.example .env
 .venv\Scripts\python -m uvicorn app.main:app --port 8001 --reload
 ```
 
-Ports: gateway 8000, identity 8001, farm 8002, weather 8003.
+Ports: gateway 8000, identity 8001, farm 8002, weather 8003, irrigation 8004.
 
 ## Authentication
 
@@ -126,6 +127,34 @@ thresholds), and tomato late blight conditions (Smith Period, Smith 1956). Each 
 states its rule and basis; alerts are indicative, not diagnoses. Responses are cached
 in memory (forecast 30 min, history 6 h) per ~1 km cell.
 
+## Irrigation Service
+
+Implements FAO Irrigation and Drainage Paper 56 (Allen et al., 1998).
+
+| Path (under `/api/v1/irrigation`) | Purpose |
+|---|---|
+| `/reference` | All parameters used, with sources |
+| `POST /calculate` | Stateless calculation from explicit crop, field and daily weather inputs |
+| `/farms/{farm_id}/fields/{field_id}?days=1..16&stage_progress=0.5` | Recommendation for each active crop on a field, from its recorded growth stage and the forecast |
+
+Method and units:
+- ETc = Kc × ET0 (Eq. 56), mm/day. Kc from Table 12: tomato 0.60 / 1.15 / 0.80
+  (end range 0.70-0.90); olive 0.65 / 0.70 / 0.70 (for 40-60 % canopy ground cover).
+  Kc is interpolated linearly in development and late stages. Optional climate
+  adjustment of Kc mid/end (Eq. 62) in `/calculate`.
+- Effective rain = fixed fraction of precipitation (default 80 %).
+- Net irrigation = max(0, ΣETc - Σeffective rain) over the period; gross = net /
+  application efficiency (drip 0.90, sprinkler 0.75, surface 0.60; FAO Training
+  Manual 4). Volume: 1 mm on 1 ha = 10 m³; 1 mm on 1 m² = 1 L.
+- TAW = 1000 (θFC - θWP) Zr (Eq. 82), RAW = p × TAW (Eq. 83), with Table 19 soil
+  midpoints and Table 22 root depth and p (adjusted for ETc). The irrigation interval
+  is the number of days until RAW is used; drip fields get daily amounts.
+
+Known limitations (also returned in each result): no soil water carry-over from
+before the period; olive Kc overestimates water use in sparse orchards; soil textures
+not in FAO-56 Table 19 (e.g. clay loam) get no interval; the farm flow does not yet
+apply the climate adjustment (needs daily RHmin and 2 m wind from the Weather Service).
+
 ## Tests
 
 Identity and Farm API tests use separate `identity_db_test` / `farm_db_test` databases
@@ -137,6 +166,7 @@ cd api-gateway;                  .venv\Scripts\python -m pytest
 cd services\identity-service;    .venv\Scripts\python -m pytest
 cd services\farm-service;        .venv\Scripts\python -m pytest
 cd services\weather-service;     .venv\Scripts\python -m pytest
+cd services\irrigation-service;  .venv\Scripts\python -m pytest
 ```
 
 ## Database migrations (per service)
