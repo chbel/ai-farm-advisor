@@ -7,16 +7,16 @@ Microservices architecture: FastAPI services behind an API Gateway, PostgreSQL 1
 
 | Service | Port (internal) | Database | Status |
 |---|---|---|---|
-| `api-gateway` | 8000 (published on `127.0.0.1:8000`) | – | Routing to identity, health/readiness |
-| `services/identity-service` | 8001 | `identity_db` | Register, login (JWT), Alembic migrations |
+| `api-gateway` | 8000 (published on `127.0.0.1:8000`) | – | Routing, token verification, health/readiness |
+| `services/identity-service` | 8001 | `identity_db` | Register, login, profiles, roles, admin |
 | `services/farm-service` | 8002 | `farm_db` | Farms, fields, crops, growth stages, farm journal |
-| `services/weather-service` | – | `weather_db` | Planned |
+| `services/weather-service` | 8003 | – (in-memory cache) | Open-Meteo forecasts, history, ET0, GDD, crop weather alerts |
 | `services/irrigation-service` | – | `irrigation_db` | Planned |
 | `services/disease-detection-service` | – | `disease_db` | Planned |
 | `services/ai-advisor-service` | – | `advisor_db` (pgvector) | Planned |
 
-Only the gateway is published to the host. Public API paths: `/api/v1/<service>/...`
-(currently `/api/v1/auth/*` → identity `/auth/*`).
+Only the gateway is published to the host. Public API paths are `/api/v1/<prefix>/...`:
+`auth` and `users` → identity, `farms` → farm, `weather` → weather.
 
 ## First-time setup
 
@@ -39,23 +39,43 @@ PostgreSQL installs often occupy).
 
 ## Local development (without Docker for the Python services)
 
+Each service has its own virtual environment and `.env` (copy `.env.example`; use the
+same database password and `JWT_SECRET_KEY` as the root `.env`).
+
 ```powershell
 docker compose up -d postgres
 
-# Identity Service
+# Example: Identity Service (same pattern for the others)
 cd services\identity-service
 py -3.11 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements-dev.txt
-Copy-Item .env.example .env            # same password / JWT secret as the root .env
-.venv\Scripts\python -m alembic upgrade head
-.venv\Scripts\python -m uvicorn app.main:app --port 8001 --reload
-
-# API Gateway (second terminal)
-cd api-gateway
-py -3.11 -m venv .venv
-.venv\Scripts\python -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
-.venv\Scripts\python -m uvicorn app.main:app --port 8000 --reload
+.venv\Scripts\python -m alembic upgrade head      # services with a database only
+.venv\Scripts\python -m uvicorn app.main:app --port 8001 --reload
+```
+
+Ports: gateway 8000, identity 8001, farm 8002, weather 8003.
+
+## Authentication
+
+| Method | Path (via gateway) | Access |
+|---|---|---|
+| POST | `/api/v1/auth/register` | Public. Always creates a `farmer` account |
+| POST | `/api/v1/auth/login` | Public. Returns a bearer access token (30 min) |
+| GET / PATCH | `/api/v1/users/me` | Authenticated. Read / update name and language |
+| POST | `/api/v1/users/me/password` | Authenticated. Change password |
+| GET | `/api/v1/users` | Admin. Paginated list (`limit`, `offset`) |
+| PATCH | `/api/v1/users/{id}` | Admin. Change `role` or `is_active` |
+
+Send the token as `Authorization: Bearer <token>`. The gateway rejects missing or
+invalid tokens before forwarding; each service verifies them again. All read the same
+`JWT_SECRET_KEY`.
+
+Roles: `farmer`, `technician`, `consultant`, `admin`. Languages: `fr`, `en`, `aeb`
+(Tunisian Arabic). Bootstrap the first administrator from the command line:
+
+```powershell
+docker compose exec identity-service python -m app.cli promote-admin you@example.com
 ```
 
 ## Farm Service
@@ -83,27 +103,52 @@ Growth stages:
 - Olive: simplified BBCH phenology (Sanz-Cortés et al., 2002): `dormancy`,
   `vegetative_growth`, `flowering`, `fruit_set`, `pit_hardening`, `fruit_maturation`.
 
+## Weather Service
+
+Data from [Open-Meteo](https://open-meteo.com/) (CC BY 4.0; attribution is included in
+every response). **The free Open-Meteo API is for non-commercial use only.** Before a
+commercial launch, subscribe and set `OPEN_METEO_FORECAST_URL` and
+`OPEN_METEO_ARCHIVE_URL` (customer endpoints) and `OPEN_METEO_API_KEY`. No code change
+is needed.
+
+| Path (under `/api/v1/weather`) | Returns |
+|---|---|
+| `/current?latitude=&longitude=` | Current conditions |
+| `/forecast?latitude=&longitude=&days=1..16&base_temperature=10` | Daily forecast, indicators, period summary |
+| `/history?latitude=&longitude=&start_date=&end_date=` | ERA5 reanalysis, max 366 days (latest ~5 days may be missing) |
+| `/risks?latitude=&longitude=&days=` | Rule-based alerts |
+| `/farms/{farm_id}?days=` | All of the above at a farm's location (ownership checked by the farm service) |
+
+Indicators: FAO-56 Penman-Monteith ET0 (computed by Open-Meteo), growing degree days
+(`max(0, (Tmax + Tmin) / 2 - Tbase)`), and water balance (precipitation - ET0).
+Alerts: frost, heat stress, heavy rain and strong wind (configurable screening
+thresholds), and tomato late blight conditions (Smith Period, Smith 1956). Each alert
+states its rule and basis; alerts are indicative, not diagnoses. Responses are cached
+in memory (forecast 30 min, history 6 h) per ~1 km cell.
+
 ## Tests
 
-Identity and Farm API tests use separate `identity_db_test` / `farm_db_test` databases (created and migrated
-automatically; PostgreSQL must be running). The development database is not touched.
+Identity and Farm API tests use separate `identity_db_test` / `farm_db_test` databases
+(created and migrated automatically; PostgreSQL must be running). The development
+databases are not touched. Weather tests need no network: upstreams are mocked.
 
 ```powershell
-cd api-gateway;                 .venv\Scripts\python -m pytest
-cd services\identity-service;   .venv\Scripts\python -m pytest
-cd servicesarm-service;       .venv\Scripts\python -m pytest
+cd api-gateway;                  .venv\Scripts\python -m pytest
+cd services\identity-service;    .venv\Scripts\python -m pytest
+cd services\farm-service;        .venv\Scripts\python -m pytest
+cd services\weather-service;     .venv\Scripts\python -m pytest
 ```
 
 ## Database migrations (per service)
 
 ```powershell
-cd services\identity-service
+cd services\identity-service     # or services\farm-service
 .venv\Scripts\python -m alembic revision --autogenerate -m "describe change"
 .venv\Scripts\python -m alembic upgrade head
 .venv\Scripts\python -m alembic check     # fails if models and migrations drift
 ```
 
-In Docker, the identity container applies pending migrations on startup.
+In Docker, services with a database apply pending migrations on startup.
 
 ## Conventions
 
