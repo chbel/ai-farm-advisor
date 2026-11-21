@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     # JWT settings used to sign and verify authentication tokens.
     JWT_SECRET_KEY: SecretStr
     JWT_ALGORITHM: str = "HS256"
+    JWT_ISSUER: str = "ai-farm-advisor-identity"
+    JWT_AUDIENCE: str = "ai-farm-advisor"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     model_config = SettingsConfigDict(

@@ -10,6 +10,14 @@ from app.core.config import Settings
 BASE = {"_env_file": None, "JWT_SECRET_KEY": "test-secret"}
 
 
+@pytest.fixture(autouse=True)
+def _isolated_environment(monkeypatch):
+    """Ignore database settings from the process environment (set by conftest)."""
+    for name in ("DATABASE_URL", "POSTGRES_HOST", "POSTGRES_PORT", "POSTGRES_USER",
+                 "POSTGRES_PASSWORD", "POSTGRES_DB"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def test_url_is_built_from_parts_and_escapes_special_characters():
     settings = Settings(**BASE, POSTGRES_HOST="postgres", POSTGRES_PORT=5432,
                         POSTGRES_PASSWORD="p@ss:w/rd#1", POSTGRES_DB="identity_db")
