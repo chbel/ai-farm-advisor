@@ -60,6 +60,9 @@ Copy-Item .env.example .env
 
 ## Tests
 
+Identity API tests use a separate `identity_db_test` database (created and migrated
+automatically; PostgreSQL must be running). The development database is not touched.
+
 ```powershell
 cd api-gateway;                 .venv\Scripts\python -m pytest
 cd services\identity-service;   .venv\Scripts\python -m pytest
