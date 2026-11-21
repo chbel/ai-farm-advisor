@@ -99,6 +99,35 @@ services:
       # Trained models (not in git): models/<crop>/model.onnx + metadata.json
       - ./services/disease-detection-service/models:/app/models:ro
 
+  ai-advisor-service:
+    build:
+      context: ./services/ai-advisor-service
+      target: runtime
+    container_name: ai-farm-advisor
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: farm_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: advisor_db
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      FARM_SERVICE_URL: http://farm-service:8002
+      WEATHER_SERVICE_URL: http://weather-service:8003
+      IRRIGATION_SERVICE_URL: http://irrigation-service:8004
+      # Free keys for open-weights models (optional: without them answers show
+      # cited evidence only). Groq first, Cerebras as fallback.
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      CEREBRAS_API_KEY: ${CEREBRAS_API_KEY:-}
+      KNOWLEDGE_COMMERCIAL_ONLY: ${KNOWLEDGE_COMMERCIAL_ONLY:-false}
+    volumes:
+      # Embedding model and downloaded documents survive restarts.
+      - advisor_data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   api-gateway:
     build: ./api-gateway
     container_name: ai-farm-gateway
@@ -111,6 +140,7 @@ services:
       WEATHER_SERVICE_URL: http://weather-service:8003
       IRRIGATION_SERVICE_URL: http://irrigation-service:8004
       DISEASE_SERVICE_URL: http://disease-detection-service:8005
+      ADVISOR_SERVICE_URL: http://ai-advisor-service:8006
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
       - "127.0.0.1:8000:8000"
@@ -125,6 +155,9 @@ services:
         condition: service_healthy
       disease-detection-service:
         condition: service_healthy
+      ai-advisor-service:
+        condition: service_healthy
 
 volumes:
   postgres_data:
+  advisor_data:
