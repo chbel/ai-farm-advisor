@@ -1,0 +1,66 @@
+name: ai-farm-advisor
+
+# Local development stack.
+#   docker compose up -d postgres   -> database only (run services with uvicorn locally)
+#   docker compose up -d --build    -> full stack (gateway on http://localhost:8000)
+#
+# Secrets come from the root .env file (see .env.example). Never commit .env.
+
+services:
+  postgres:
+    # Postgres 16 + pgvector (needed for RAG). The Debian trixie variant has the
+    # same glibc (2.41) as the postgres:16 image that created the existing
+    # volume, so text collations stay consistent and the volume is reused as-is.
+    image: pgvector/pgvector:0.8.1-pg16-trixie
+    container_name: ai-farm-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: farm_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
+      POSTGRES_DB: postgres
+    ports:
+      # Bound to localhost only. Default host port 5440 because 5432-5436 are
+      # often taken by natively installed PostgreSQL servers on Windows.
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5440}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infrastructure/database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farm_admin -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  identity-service:
+    build: ./services/identity-service
+    container_name: ai-farm-identity
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: farm_admin
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: identity_db
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?JWT_SECRET_KEY must be set in .env}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Not published to the host: clients must go through the API Gateway.
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: ai-farm-gateway
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      CORS_ORIGINS: '["http://localhost:5173"]'
+      IDENTITY_SERVICE_URL: http://identity-service:8001
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      identity-service:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
