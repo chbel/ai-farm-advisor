@@ -76,6 +76,16 @@ services:
       OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
     # Needs outbound internet access to reach Open-Meteo.
 
+  irrigation-service:
+    build: ./services/irrigation-service
+    container_name: ai-farm-irrigation
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      FARM_SERVICE_URL: http://farm-service:8002
+      WEATHER_SERVICE_URL: http://weather-service:8003
+
   api-gateway:
     build: ./api-gateway
     container_name: ai-farm-gateway
@@ -86,6 +96,7 @@ services:
       IDENTITY_SERVICE_URL: http://identity-service:8001
       FARM_SERVICE_URL: http://farm-service:8002
       WEATHER_SERVICE_URL: http://weather-service:8003
+      IRRIGATION_SERVICE_URL: http://irrigation-service:8004
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
       - "127.0.0.1:8000:8000"
@@ -95,6 +106,8 @@ services:
       farm-service:
         condition: service_healthy
       weather-service:
+        condition: service_healthy
+      irrigation-service:
         condition: service_healthy
 
 volumes:

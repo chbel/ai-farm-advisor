@@ -89,6 +89,7 @@ def test_readiness_reports_each_service(gateway):
             "identity-service": "healthy",
             "farm-service": "healthy",
             "weather-service": "healthy",
+            "irrigation-service": "healthy",
         },
     }
 
@@ -101,4 +102,5 @@ def test_readiness_reports_each_service(gateway):
         "identity-service": "unavailable",
         "farm-service": "unavailable",
         "weather-service": "unavailable",
+        "irrigation-service": "unavailable",
     }
