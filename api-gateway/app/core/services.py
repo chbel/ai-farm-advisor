@@ -27,6 +27,7 @@ class UpstreamService:
 
 _IDENTITY_URL = str(settings.IDENTITY_SERVICE_URL).rstrip("/")
 _FARM_URL = str(settings.FARM_SERVICE_URL).rstrip("/")
+_WEATHER_URL = str(settings.WEATHER_SERVICE_URL).rstrip("/")
 
 SERVICES: tuple[UpstreamService, ...] = (
     UpstreamService(
@@ -47,6 +48,12 @@ SERVICES: tuple[UpstreamService, ...] = (
         base_url=_FARM_URL,
         public_prefix="farms",
         upstream_prefix="farms",
+    ),
+    UpstreamService(
+        name="weather-service",
+        base_url=_WEATHER_URL,
+        public_prefix="weather",
+        upstream_prefix="weather",
     ),
 )
 
