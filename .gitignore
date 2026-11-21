@@ -36,3 +36,6 @@ desktop.ini
 services/disease-detection-service/models/*
 !services/disease-detection-service/models/README.md
 *.onnx
+
+# AI advisor downloaded documents and embedding model
+services/ai-advisor-service/data/
