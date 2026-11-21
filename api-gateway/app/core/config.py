@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     # Defaults match running the services locally with uvicorn.
     IDENTITY_SERVICE_URL: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:8001")
     FARM_SERVICE_URL: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:8002")
+    WEATHER_SERVICE_URL: AnyHttpUrl = AnyHttpUrl("http://127.0.0.1:8003")
 
     # Upper bound for a single upstream call, in seconds.
     UPSTREAM_TIMEOUT_SECONDS: float = 15.0

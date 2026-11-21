@@ -153,3 +153,17 @@ def test_farm_routes_are_protected_and_forwarded(gateway):
     )
     assert response.status_code == 200
     assert str(upstream.requests[0].url) == "http://farm.test:8002/farms/3/fields?x=1"
+
+
+def test_weather_routes_are_protected_and_forwarded(gateway):
+    upstream = Recorder()
+    client = gateway(upstream)
+
+    assert client.get("/api/v1/weather/forecast?latitude=34&longitude=10").status_code == 401
+    assert upstream.requests == []
+
+    response = client.get(
+        "/api/v1/weather/farms/5?days=3", headers={"Authorization": f"Bearer {make_token()}"}
+    )
+    assert response.status_code == 200
+    assert str(upstream.requests[0].url) == "http://weather.test:8003/weather/farms/5?days=3"

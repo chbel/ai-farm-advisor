@@ -1,0 +1,9 @@
+# Runtime dependencies (installed in the Docker image).
+fastapi==0.162.2
+uvicorn[standard]==0.54.0
+pydantic==2.14.3
+pydantic-settings==2.16.2
+# Async HTTP client for Open-Meteo and the Farm Service.
+httpx==0.28.1
+# Verifies access tokens issued by the Identity Service.
+PyJWT==2.15.1

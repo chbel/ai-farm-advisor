@@ -85,7 +85,11 @@ def test_readiness_reports_each_service(gateway):
     ok = gateway(lambda r: httpx.Response(200, json={"status": "healthy"}))
     assert ok.get("/health/ready").json() == {
         "status": "ready",
-        "services": {"identity-service": "healthy", "farm-service": "healthy"},
+        "services": {
+            "identity-service": "healthy",
+            "farm-service": "healthy",
+            "weather-service": "healthy",
+        },
     }
 
     def down(request: httpx.Request) -> httpx.Response:
@@ -96,4 +100,5 @@ def test_readiness_reports_each_service(gateway):
     assert response.json()["services"] == {
         "identity-service": "unavailable",
         "farm-service": "unavailable",
+        "weather-service": "unavailable",
     }

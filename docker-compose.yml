@@ -64,6 +64,18 @@ services:
       postgres:
         condition: service_healthy
 
+  weather-service:
+    build: ./services/weather-service
+    container_name: ai-farm-weather
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      FARM_SERVICE_URL: http://farm-service:8002
+      # Free Open-Meteo endpoints are non-commercial; set these for a paid plan.
+      OPEN_METEO_API_KEY: ${OPEN_METEO_API_KEY:-}
+    # Needs outbound internet access to reach Open-Meteo.
+
   api-gateway:
     build: ./api-gateway
     container_name: ai-farm-gateway
@@ -73,6 +85,7 @@ services:
       CORS_ORIGINS: '["http://localhost:5173"]'
       IDENTITY_SERVICE_URL: http://identity-service:8001
       FARM_SERVICE_URL: http://farm-service:8002
+      WEATHER_SERVICE_URL: http://weather-service:8003
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
     ports:
       - "127.0.0.1:8000:8000"
@@ -80,6 +93,8 @@ services:
       identity-service:
         condition: service_healthy
       farm-service:
+        condition: service_healthy
+      weather-service:
         condition: service_healthy
 
 volumes:
